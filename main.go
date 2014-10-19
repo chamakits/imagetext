@@ -14,6 +14,7 @@ import (
 	"os"
 
 	"code.google.com/p/freetype-go/freetype"
+	"code.google.com/p/freetype-go/freetype/truetype"
 
 	"github.com/gorilla/mux"
 )
@@ -43,6 +44,68 @@ func acceptCors(handlerFunction http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+func FontPathToFont(fontfile string) (*truetype.Font, error) {
+	fontBytes, err := ioutil.ReadFile(fontfile)
+	if err != nil {
+		log.Println(err)
+		log.Fatalln("Failing out.")
+	}
+	font, err := freetype.ParseFont(fontBytes)
+	return font, err
+}
+
+func InitContext(dpi float64, fontSize float64, fontPath string) (*freetype.Context, error) {
+
+	font, error := FontPathToFont(fontPath)
+	if error != nil {
+		return nil, error
+	}
+
+	c := freetype.NewContext()
+	c.SetDPI(dpi)
+	c.SetFont(font)
+	c.SetFontSize(fontSize)
+
+	return c, nil
+}
+
+func CreateRGBA(pointX, pointY, width, height int) *image.RGBA {
+	//*image.Rectangle
+	//image.Rect(0, 0, 640, 480)
+	rect := image.Rect(pointX, pointY, width, height)
+	return image.NewRGBA(rect)
+}
+
+func DrawToContext(context *freetype.Context, img *image.RGBA, backGround image.Image,
+	foreGround image.Image) {
+	draw.Draw(img, img.Bounds(), backGround, image.ZP, draw.Src)
+	context.SetClip(img.Bounds())
+	// context.SetClip(img.Bounds())
+	context.SetDst(img)
+	context.SetSrc(foreGround)
+}
+
+func helloHandler(fc *freetype.Context, rgba *image.RGBA) http.HandlerFunc {
+	return func(response http.ResponseWriter, req *http.Request) {
+		vars := mux.Vars(req)
+		words := vars["words"]
+
+		fontfile := "luxisr.ttf"
+
+		// font, err := FontPathToFont(fontfile)
+		// if err != nil {
+		// 	log.Fatalf("Error:%v\n", err)
+		// }
+		context, err := InitContext(300, 12, fontfile)
+		if err != nil {
+			log.Fatalf("Error:%v\n", err)
+		}
+		rgba := CreateRGBA(0, 0, 640, 480)
+		DrawToContext(context, rgba, image.White, image.Black)
+		writeText(context, 12, words)
+		writeImage(rgba)
+	}
+}
 func initFreetypeContext(fontSize int) (*freetype.Context, *image.RGBA) {
 
 	fontfile := "luxisr.ttf"
@@ -66,7 +129,7 @@ func initFreetypeContext(fontSize int) (*freetype.Context, *image.RGBA) {
 	bg := image.White
 	draw.Draw(rgba, rgba.Bounds(), bg, image.ZP, draw.Src)
 	c.SetClip(rgba.Bounds())
-	c.SetClip(rgba.Bounds())
+	// c.SetClip(rgba.Bounds())
 	c.SetDst(rgba)
 
 	fg := image.Black
@@ -119,7 +182,7 @@ func writeImage(rgba image.Image) {
 	fmt.Println("Wrote out.png OK.")
 }
 
-func helloHandler(fc *freetype.Context, rgba *image.RGBA) http.HandlerFunc {
+func helloHandler_OLD(fc *freetype.Context, rgba *image.RGBA) http.HandlerFunc {
 	return func(response http.ResponseWriter, req *http.Request) {
 		vars := mux.Vars(req)
 		words := vars["words"]
