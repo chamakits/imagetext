@@ -94,16 +94,19 @@ func helloHandler(fc *freetype.Context, rgba *image.RGBA) http.HandlerFunc {
 		splitWords := strings.Split(words, " ")
 		wordsList := make([]string, 0)
 		currentLine := ""
-		for count, curr := range splitWords {
-			if count%2 == 0 && count != 0 {
-				currentLine = currentLine + curr + " "
-				wordsList = append(wordsList, currentLine)
+		// for count, curr := range splitWords {
+		// if count%2 == 0 && count != 0 {
+		for _, curr := range splitWords {
+			fmt.Println("Curr:" + curr)
+			if curr == "\\n" {
+				// currentLine = currentLine + curr + " "
+				wordsList = append(wordsList, strings.Trim(currentLine, " "))
 				currentLine = ""
 			} else {
 				currentLine = currentLine + curr + " "
 			}
 		}
-		wordsList = append(wordsList, currentLine)
+		wordsList = append(wordsList, strings.Trim(currentLine, " "))
 
 		fontfile := "luxisr.ttf"
 
