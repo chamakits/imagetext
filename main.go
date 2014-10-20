@@ -92,13 +92,18 @@ func helloHandler(fc *freetype.Context, rgba *image.RGBA) http.HandlerFunc {
 		words := vars["words"]
 
 		splitWords := strings.Split(words, " ")
-		words = ""
+		wordsList := make([]string, 0)
+		currentLine := ""
 		for count, curr := range splitWords {
-			if count%2 == 0 {
-				words = words + "\n"
+			if count%2 == 0 && count != 0 {
+				currentLine = currentLine + curr + " "
+				wordsList = append(wordsList, currentLine)
+				currentLine = ""
+			} else {
+				currentLine = currentLine + curr + " "
 			}
-			words = words + curr + " "
 		}
+		wordsList = append(wordsList, currentLine)
 
 		fontfile := "luxisr.ttf"
 
@@ -108,7 +113,7 @@ func helloHandler(fc *freetype.Context, rgba *image.RGBA) http.HandlerFunc {
 		}
 		rgba := CreateRGBA(0, 0, 640, 480)
 		DrawToContext(context, rgba, image.White, image.Black)
-		writeText(context, 12, words)
+		writeText(context, 12, wordsList)
 		writeImage(rgba)
 
 		//Serve image
@@ -164,11 +169,11 @@ func initFreetypeContext(fontSize int) (*freetype.Context, *image.RGBA) {
 	return c, rgba
 }
 
-func writeText(c *freetype.Context, fontSize int, words string) {
+func writeText(c *freetype.Context, fontSize int, words []string) {
 
 	// Draw the text.
 	pt := freetype.Pt(10, 10+int(c.PointToFix32(float64(fontSize))>>8))
-	for _, s := range []string{words} {
+	for _, s := range words {
 		_, err := c.DrawString(s, pt)
 		if err != nil {
 			log.Println(err)
@@ -207,7 +212,7 @@ func helloHandler_OLD(fc *freetype.Context, rgba *image.RGBA) http.HandlerFunc {
 		words := vars["words"]
 
 		fontSize := 12
-		writeText(fc, fontSize, words)
+		writeText(fc, fontSize, []string{words})
 
 		var buf bytes.Buffer
 		buffWriter := &buf
