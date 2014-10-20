@@ -12,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"code.google.com/p/freetype-go/freetype"
 	"code.google.com/p/freetype-go/freetype/truetype"
@@ -90,12 +91,17 @@ func helloHandler(fc *freetype.Context, rgba *image.RGBA) http.HandlerFunc {
 		vars := mux.Vars(req)
 		words := vars["words"]
 
+		splitWords := strings.Split(words, " ")
+		words = ""
+		for count, curr := range splitWords {
+			if count%2 == 0 {
+				words = words + "\n"
+			}
+			words = words + curr + " "
+		}
+
 		fontfile := "luxisr.ttf"
 
-		// font, err := FontPathToFont(fontfile)
-		// if err != nil {
-		// 	log.Fatalf("Error:%v\n", err)
-		// }
 		context, err := InitContext(300, 12, fontfile)
 		if err != nil {
 			log.Fatalf("Error:%v\n", err)
@@ -104,8 +110,21 @@ func helloHandler(fc *freetype.Context, rgba *image.RGBA) http.HandlerFunc {
 		DrawToContext(context, rgba, image.White, image.Black)
 		writeText(context, 12, words)
 		writeImage(rgba)
+
+		//Serve image
+		bufWriter := GetImageByteBuffer(rgba)
+		fmt.Fprintf(response, "%v", bufWriter)
 	}
 }
+
+// func GetImageByteBuffer(img *image.RGBA) *bytes.Buffer {
+func GetImageByteBuffer(img image.Image) *bytes.Buffer {
+	var buf bytes.Buffer
+	bufWriter := &buf
+	png.Encode(bufWriter, img)
+	return bufWriter
+}
+
 func initFreetypeContext(fontSize int) (*freetype.Context, *image.RGBA) {
 
 	fontfile := "luxisr.ttf"
@@ -192,6 +211,8 @@ func helloHandler_OLD(fc *freetype.Context, rgba *image.RGBA) http.HandlerFunc {
 
 		var buf bytes.Buffer
 		buffWriter := &buf
+		// c:
+		// 	+1 + buffWriter
 		png.Encode(buffWriter, rgba)
 		// err := buffWriter.Flush()
 		fmt.Fprintf(response, "%v", buffWriter)
