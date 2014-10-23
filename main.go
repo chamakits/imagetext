@@ -12,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"code.google.com/p/freetype-go/freetype"
@@ -23,7 +24,10 @@ import (
 func main() {
 	r := mux.NewRouter()
 	fontSize := 12
-	r.HandleFunc("/hello/{words}", acceptCors(helloHandler(initFreetypeContext(fontSize))))
+	r.HandleFunc("/text/{words}/{height}/{width}", acceptCors(helloHandler(initFreetypeContext(fontSize))))
+	r.HandleFunc("/text/{words}/{height}", acceptCors(helloHandler(initFreetypeContext(fontSize))))
+	r.HandleFunc("/text/{words}/", acceptCors(helloHandler(initFreetypeContext(fontSize))))
+	r.HandleFunc("/text/{words}", acceptCors(helloHandler(initFreetypeContext(fontSize))))
 	http.Handle("/", r)
 	http.ListenAndServe(fmt.Sprintf(":%v", 3111), nil)
 }
@@ -91,6 +95,16 @@ func helloHandler(fc *freetype.Context, rgba *image.RGBA) http.HandlerFunc {
 		vars := mux.Vars(req)
 		words := vars["words"]
 
+		height, err := strconv.Atoi(vars["height"])
+		if err != nil || height <= 0 {
+			height = 100
+		}
+
+		width, err := strconv.Atoi(vars["width"])
+		if err != nil || width <= 0 {
+			width = 100
+		}
+
 		splitWords := strings.Split(words, " ")
 		wordsList := make([]string, 0)
 		currentLine := ""
@@ -114,7 +128,8 @@ func helloHandler(fc *freetype.Context, rgba *image.RGBA) http.HandlerFunc {
 		if err != nil {
 			log.Fatalf("Error:%v\n", err)
 		}
-		rgba := CreateRGBA(0, 0, 640, 480)
+		// rgba := CreateRGBA(0, 0, 640, 480)
+		rgba := CreateRGBA(0, 0, width, height)
 		DrawToContext(context, rgba, image.White, image.Black)
 		writeText(context, 12, wordsList)
 		writeImage(rgba)
