@@ -96,7 +96,7 @@ func calcultedTextHandler(fc *freetype.Context, rgba *image.RGBA) http.HandlerFu
 		vars := mux.Vars(req)
 		words := vars["words"]
 
-		lines := strings.Split(words, "\n")
+		lines := strings.Split(words, "\\n")
 		longestLine := int(0)
 		for _, currLine := range lines {
 			currLen := len(currLine)
@@ -106,15 +106,17 @@ func calcultedTextHandler(fc *freetype.Context, rgba *image.RGBA) http.HandlerFu
 		}
 		linesAmount := len(lines)
 
-		fontfile := "luxisr.ttf"
+		// fontfile := "luxisr.ttf"
+		fontfile := "mplus-1m-regular.ttf"
 
 		context, err := InitContext(300, 12, fontfile)
 		if err != nil {
 			log.Fatalf("Error:%v\n", err)
 		}
 
-		width := 30
-		height := 30
+		width := 25
+		// height := 50
+		height := 70
 		rgba := CreateRGBA(0, 0, longestLine*width, linesAmount*height)
 		DrawToContext(context, rgba, image.White, image.Black)
 		writeText(context, 12, lines)
