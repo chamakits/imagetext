@@ -24,10 +24,11 @@ import (
 func main() {
 	r := mux.NewRouter()
 	fontSize := 12
-	r.HandleFunc("/text/{words}/{height}/{width}", acceptCors(helloHandler(initFreetypeContext(fontSize))))
-	r.HandleFunc("/text/{words}/{height}", acceptCors(helloHandler(initFreetypeContext(fontSize))))
-	r.HandleFunc("/text/{words}/", acceptCors(helloHandler(initFreetypeContext(fontSize))))
-	r.HandleFunc("/text/{words}", acceptCors(helloHandler(initFreetypeContext(fontSize))))
+	r.HandleFunc("/text/{words}/{height}/{width}", acceptCors(textHandler(initFreetypeContext(fontSize))))
+	r.HandleFunc("/text/{words}/{height}", acceptCors(textHandler(initFreetypeContext(fontSize))))
+	r.HandleFunc("/text/{words}/", acceptCors(textHandler(initFreetypeContext(fontSize))))
+	r.HandleFunc("/text/{words}", acceptCors(textHandler(initFreetypeContext(fontSize))))
+	r.HandleFunc("/calculated-text/{words}", acceptCors(calcultedTextHandler(initFreetypeContext(fontSize))))
 	http.Handle("/", r)
 	http.ListenAndServe(fmt.Sprintf(":%v", 3111), nil)
 }
@@ -90,7 +91,42 @@ func DrawToContext(context *freetype.Context, img *image.RGBA, backGround image.
 	context.SetSrc(foreGround)
 }
 
-func helloHandler(fc *freetype.Context, rgba *image.RGBA) http.HandlerFunc {
+func calcultedTextHandler(fc *freetype.Context, rgba *image.RGBA) http.HandlerFunc {
+	return func(response http.ResponseWriter, req *http.Request) {
+		vars := mux.Vars(req)
+		words := vars["words"]
+
+		lines := strings.Split(words, "\n")
+		longestLine := int(0)
+		for _, currLine := range lines {
+			currLen := len(currLine)
+			if currLen > longestLine {
+				longestLine = currLen
+			}
+		}
+		linesAmount := len(lines)
+
+		fontfile := "luxisr.ttf"
+
+		context, err := InitContext(300, 12, fontfile)
+		if err != nil {
+			log.Fatalf("Error:%v\n", err)
+		}
+
+		width := 30
+		height := 30
+		rgba := CreateRGBA(0, 0, longestLine*width, linesAmount*height)
+		DrawToContext(context, rgba, image.White, image.Black)
+		writeText(context, 12, lines)
+		writeImage(rgba)
+
+		bufWriter := GetImageByteBuffer(rgba)
+		fmt.Fprintf(response, "%v", bufWriter)
+
+	}
+}
+
+func textHandler(fc *freetype.Context, rgba *image.RGBA) http.HandlerFunc {
 	return func(response http.ResponseWriter, req *http.Request) {
 		vars := mux.Vars(req)
 		words := vars["words"]
@@ -188,9 +224,13 @@ func initFreetypeContext(fontSize int) (*freetype.Context, *image.RGBA) {
 }
 
 func writeText(c *freetype.Context, fontSize int, words []string) {
+	experimentalY := int(c.PointToFix32(float64(fontSize))) >> 8
 
 	// Draw the text.
-	pt := freetype.Pt(10, 10+int(c.PointToFix32(float64(fontSize))>>8))
+	fmt.Printf("X:%v, Y:%v\n", 10, 10+int(c.PointToFix32(float64(fontSize))>>8))
+	fmt.Printf("Experimental:X:%v, Y:%v\n", 0, experimentalY)
+	// pt := freetype.Pt(10, 10+int(c.PointToFix32(float64(fontSize))>>8))
+	pt := freetype.Pt(0, experimentalY)
 	for _, s := range words {
 		_, err := c.DrawString(s, pt)
 		if err != nil {
@@ -224,7 +264,7 @@ func writeImage(rgba image.Image) {
 	fmt.Println("Wrote out.png OK.")
 }
 
-func helloHandler_OLD(fc *freetype.Context, rgba *image.RGBA) http.HandlerFunc {
+func textHandler_OLD(fc *freetype.Context, rgba *image.RGBA) http.HandlerFunc {
 	return func(response http.ResponseWriter, req *http.Request) {
 		vars := mux.Vars(req)
 		words := vars["words"]
