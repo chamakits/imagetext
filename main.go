@@ -15,13 +15,14 @@ import (
 	"strconv"
 	"strings"
 
-	"code.google.com/p/freetype-go/freetype"
-	"code.google.com/p/freetype-go/freetype/truetype"
+	"github.com/golang/freetype"
+	"github.com/golang/freetype/truetype"
 
 	"github.com/gorilla/mux"
 )
 
 func main() {
+	// Open 'http://localhost:3111/calculated-text/abc%5Cndef%20xyz%5Cn123' in your browser.
 	r := mux.NewRouter()
 	fontSize := 12
 	r.HandleFunc("/text/{words}/{height}/{width}", acceptCors(textHandler(initFreetypeContext(fontSize))))
@@ -114,7 +115,7 @@ func calcultedTextHandler(fc *freetype.Context, rgba *image.RGBA) http.HandlerFu
 			log.Fatalf("Error:%v\n", err)
 		}
 
-		width := 25
+		width := 28
 		// height := 50
 		height := 70
 		rgba := CreateRGBA(0, 0, longestLine*width, linesAmount*height)
@@ -226,13 +227,14 @@ func initFreetypeContext(fontSize int) (*freetype.Context, *image.RGBA) {
 }
 
 func writeText(c *freetype.Context, fontSize int, words []string) {
-	experimentalY := int(c.PointToFix32(float64(fontSize))) >> 8
+	//experimentalY := int(c.PointToFixed(float64(fontSize))) >> 8
+	//pt := freetype.Pt(0, experimentalY)
 
 	// Draw the text.
-	fmt.Printf("X:%v, Y:%v\n", 10, 10+int(c.PointToFix32(float64(fontSize))>>8))
-	fmt.Printf("Experimental:X:%v, Y:%v\n", 0, experimentalY)
-	// pt := freetype.Pt(10, 10+int(c.PointToFix32(float64(fontSize))>>8))
-	pt := freetype.Pt(0, experimentalY)
+	//fmt.Printf("X:%v, Y:%v\n", 10, 10+int(c.PointToFixed(float64(fontSize))>>8))
+	//fmt.Printf("Experimental:X:%v, Y:%v\n", 0, experimentalY)
+	pt := freetype.Pt(10, 40+int(c.PointToFixed(float64(fontSize))>>8))
+
 	for _, s := range words {
 		_, err := c.DrawString(s, pt)
 		if err != nil {
@@ -240,7 +242,7 @@ func writeText(c *freetype.Context, fontSize int, words []string) {
 			return
 		}
 		spacing := 1.5
-		pt.Y += c.PointToFix32(float64(fontSize) * spacing)
+		pt.Y += c.PointToFixed(float64(fontSize) * spacing)
 	}
 }
 
